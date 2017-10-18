@@ -276,6 +276,7 @@ class LogisticGradient(numClasses: Int) extends Gradient {
 
 /**
  * :: DeveloperApi ::
+  * 对每个单例样本,计算线性回归的最小二乘损失函数的梯度和损失
  * Compute gradient and loss for a Least-squared loss function, as used in linear regression.
  * This is correct for the averaged least squares loss function (mean squared error)
  *              L = 1/2n ||A weights-y||^2
@@ -284,9 +285,12 @@ class LogisticGradient(numClasses: Int) extends Gradient {
 @DeveloperApi
 class LeastSquaresGradient extends Gradient {
   override def compute(data: Vector, label: Double, weights: Vector): (Vector, Double) = {
+    // (y -h_sita(x)) 计算当前计算对象的类标签与实际类标签值之差
     val diff = dot(data, weights) - label
+    // 计算当前平方损失
     val loss = diff * diff / 2.0
     val gradient = data.copy
+    // 梯度值: x*(y-h_sita(x))
     scal(diff, gradient)
     (gradient, loss)
   }
@@ -296,8 +300,11 @@ class LeastSquaresGradient extends Gradient {
       label: Double,
       weights: Vector,
       cumGradient: Vector): Double = {
+    // (y - h_sita(x))
     val diff = dot(data, weights) - label
+    // cumGradient = x*(y-h_sita(x)),其中cumGradient是已创建向量,计算的梯度值添加到cumGradient
     axpy(diff, data, cumGradient)
+    // 返回损失值
     diff * diff / 2.0
   }
 }

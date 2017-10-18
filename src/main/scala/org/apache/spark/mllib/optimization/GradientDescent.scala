@@ -124,6 +124,7 @@ class GradientDescent private[spark] (private var gradient: Gradient, private va
   }
 
   /**
+    * 对训练数据运行梯度下降法
    * :: DeveloperApi ::
    * Runs gradient descent on the given training data.
    * @param data training data
@@ -154,6 +155,8 @@ class GradientDescent private[spark] (private var gradient: Gradient, private va
 @DeveloperApi
 object GradientDescent extends Logging {
   /**
+    * 运行随机梯度下降,对每个batch并行计算
+    * 每次迭代中,随机选择一个子集进行优化计算
    * Run stochastic gradient descent (SGD) in parallel using mini batches.
    * In each iteration, we sample a subset (fraction miniBatchFraction) of the total data
    * in order to compute a gradient estimate.
@@ -176,7 +179,7 @@ object GradientDescent extends Logging {
    *                       Default value 0.001. Must be between 0.0 and 1.0 inclusively.
    * @return A tuple containing two elements. The first element is a column matrix containing
    *         weights for every feature, and the second element is an array containing the
-   *         stochastic loss computed for every iteration.
+   *         stochastic loss computed(迭代计算的随机损失) for every iteration.
    */
   def runMiniBatchSGD(
       data: RDD[(Double, Vector)],
@@ -200,29 +203,35 @@ object GradientDescent extends Logging {
         s"numIterations=$numIterations and miniBatchFraction=$miniBatchFraction")
     }
 
+    // 历史迭代误差数组
     val stochasticLossHistory = new ArrayBuffer[Double](numIterations)
     // Record previous weight and current one to calculate solution vector difference
 
     var previousWeights: Option[Vector] = None
     var currentWeights: Option[Vector] = None
 
+    // 训练样本数
     val numExamples = data.count()
 
+    // 如果数据为空,返回初始权重
     // if no data, return initial weights to avoid NaNs
     if (numExamples == 0) {
       logWarning("GradientDescent.runMiniBatchSGD returning initial weights, no data found")
       return (initialWeights, stochasticLossHistory.toArray)
     }
 
+    // miniBatchFraction 参数值异常检测
     if (numExamples * miniBatchFraction < 1) {
       logWarning("The miniBatchFraction is too small")
     }
 
+    // weights 权重初始化
     // Initialize weights as a column vector
     var weights = Vectors.dense(initialWeights.toArray)
     val n = weights.size
 
     /**
+      * 第一次迭代,正则化将初始化为权重的加权平方和
      * For the first iteration, the regVal will be initialized as sum of weight squares
      * if it's L2 updater; for L1 updater, the same logic is followed.
      */
@@ -231,8 +240,12 @@ object GradientDescent extends Logging {
 
     var converged = false // indicates whether converged based on convergenceTol
     var i = 1
+    // weights权重迭代计算
     while (!converged && i <= numIterations) {
+      // 广播weights权重变量
       val bcWeights = data.context.broadcast(weights)
+      // 随机取样本子集,对样本子集,采用treeAggregate的RDD方法,进行聚合计算,
+      // 计算每个样本的权重向量,误差值,然后对所有样本权重向量及误差值进行累加
       // Sample a subset (fraction miniBatchFraction) of the total data
       // compute and sum up the subgradients on this subset (this is one map-reduce)
       val (gradientSum, lossSum, miniBatchSize) = data.sample(false, miniBatchFraction, 42 + i)
@@ -249,6 +262,8 @@ object GradientDescent extends Logging {
 
       if (miniBatchSize > 0) {
         /**
+          * 保存误差: 迭代误差=平均损失+正则误差
+          * 更新权重
          * lossSum is computed using the weights from the previous iteration
          * and regVal is the regularization value computed in the previous iteration as well.
          */

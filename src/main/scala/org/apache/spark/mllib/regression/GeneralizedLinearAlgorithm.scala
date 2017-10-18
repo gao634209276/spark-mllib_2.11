@@ -235,6 +235,7 @@ abstract class GeneralizedLinearAlgorithm[M <: GeneralizedLinearModel]
   }
 
   /**
+   * 运行训练算法
    * Run the algorithm with the configured parameters on an input RDD
    * of LabeledPoint entries starting from the initial weights provided.
    *
@@ -242,15 +243,18 @@ abstract class GeneralizedLinearAlgorithm[M <: GeneralizedLinearModel]
   @Since("1.0.0")
   def run(input: RDD[LabeledPoint], initialWeights: Vector): M = {
 
+    // 特征维度
     if (numFeatures < 0) {
       numFeatures = input.map(_.features.size).first()
     }
 
+    // 输入样本检测
     if (input.getStorageLevel == StorageLevel.NONE) {
       logWarning("The input data is not directly cached, which may hurt performance if its"
         + " parent RDDs are also uncached.")
     }
 
+    // 输入样本数据检测
     // Check the data properties before running the optimizer
     if (validateData && !validators.forall(func => func(input))) {
       throw new SparkException("Input validation failed.")
@@ -273,6 +277,7 @@ abstract class GeneralizedLinearAlgorithm[M <: GeneralizedLinearModel]
      * scaled space. Then we transform the coefficients from the scaled space to the original scale
      * as GLMNET and LIBSVM do.
      *
+     * 目前只适应于逻辑回归
      * Currently, it's only enabled in LogisticRegressionWithLBFGS
      */
     val scaler = if (useFeatureScaling) {
@@ -281,6 +286,7 @@ abstract class GeneralizedLinearAlgorithm[M <: GeneralizedLinearModel]
       null
     }
 
+    // 增加偏置项,sita常数项
     // Prepend an extra variable consisting of all 1.0's for the intercept.
     // TODO: Apply feature scaling to the weight vector instead of input data.
     val data =
@@ -299,6 +305,8 @@ abstract class GeneralizedLinearAlgorithm[M <: GeneralizedLinearModel]
       }
 
     /**
+      *  初始权重,包括增加偏置项
+      *  偏置项sita若增加,则x_sita=1 项
      * TODO: For better convergence, in logistic regression, the intercepts should be computed
      * from the prior probability distribution of the outcomes; for linear regression,
      * the intercept should be set as the average of response.
@@ -310,6 +318,7 @@ abstract class GeneralizedLinearAlgorithm[M <: GeneralizedLinearModel]
       initialWeights
     }
 
+    // 权重训练,权重优化,进行梯度下降学习,返回最优权重
     val weightsWithIntercept = optimizer.optimize(data, initialWeightsWithIntercept)
 
     val intercept = if (addIntercept && numOfLinearPredictor == 1) {

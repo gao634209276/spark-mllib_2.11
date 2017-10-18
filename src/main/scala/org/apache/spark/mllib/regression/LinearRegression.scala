@@ -77,7 +77,7 @@ object LinearRegressionModel extends Loader[LinearRegressionModel] {
 }
 
 /**
- * Train a linear regression model with no regularization using Stochastic Gradient Descent.
+ * Train a linear regression model with no regularization(无正则化) using Stochastic Gradient Descent(随机梯度下降).
  * This solves the least squares regression formulation
  *              f(weights) = 1/n ||A weights-y||^2^
  * (which is the mean squared error).
@@ -93,8 +93,11 @@ class LinearRegressionWithSGD private[mllib] (
     private var miniBatchFraction: Double)
   extends GeneralizedLinearAlgorithm[LinearRegressionModel] with Serializable {
 
+  // 采用最小平方随时函数的梯度下降法,用于线性回归
   private val gradient = new LeastSquaresGradient()
+  // 采用简单梯度更新方法,无正则化
   private val updater = new SimpleUpdater()
+  // 根据梯度下降方法,梯度更新方法,新建梯度优化计算方法
   @Since("0.8.0")
   override val optimizer = new GradientDescent(gradient, updater)
     .setStepSize(stepSize)
@@ -157,7 +160,7 @@ object LinearRegressionWithSGD {
    * @param input RDD of (label, array of features) pairs. Each pair describes a row of the data
    *              matrix A as well as the corresponding right hand side label y
    * @param numIterations Number of iterations of gradient descent to run.
-   * @param stepSize Step size to be used for each iteration of gradient descent.
+   * @param stepSize Step size (步长) to be used for each iteration of gradient descent.
    * @param miniBatchFraction Fraction of data to be used per iteration.
    *
    */
