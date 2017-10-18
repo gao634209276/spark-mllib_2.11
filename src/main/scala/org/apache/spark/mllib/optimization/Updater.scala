@@ -129,9 +129,14 @@ class L1Updater extends Updater {
 
 /**
  * :: DeveloperApi ::
+  * L2正则化更新梯度
+  *
  * Updater for L2 regularized problems.
  *          R(w) = 1/2 ||w||^2
+  * 使用: step-size/sqrt(iterations)作为更新系数
  * Uses a step-size decreasing with the square root of the number of iterations.
+  * L2曾泽华更新公式:
+  * weight = weight - (stepSize/sqrt(iter))*(gradient + regParam * weight)
  */
 @DeveloperApi
 class SquaredL2Updater extends Updater {
@@ -149,6 +154,7 @@ class SquaredL2Updater extends Updater {
     val brzWeights: BV[Double] = weightsOld.asBreeze.toDenseVector
     brzWeights :*= (1.0 - thisIterStepSize * regParam)
     brzAxpy(-thisIterStepSize, gradient.asBreeze, brzWeights)
+    // L2范数计算
     val norm = brzNorm(brzWeights, 2.0)
 
     (Vectors.fromBreeze(brzWeights), 0.5 * regParam * norm * norm)

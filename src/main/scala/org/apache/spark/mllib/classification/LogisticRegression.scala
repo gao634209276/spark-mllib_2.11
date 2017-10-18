@@ -199,6 +199,8 @@ object LogisticRegressionModel extends Loader[LogisticRegressionModel] {
 }
 
 /**
+  * 逻辑回归模型
+  * 基于随机梯度下降法,默认L2正则化
  * Train a classification model for Binary Logistic Regression
  * using Stochastic Gradient Descent. By default L2 regularization is used,
  * which can be changed via `LogisticRegressionWithSGD.optimizer`.
@@ -216,8 +218,11 @@ class LogisticRegressionWithSGD private[mllib] (
     private var miniBatchFraction: Double)
   extends GeneralizedLinearAlgorithm[LogisticRegressionModel] with Serializable {
 
+  // 逻辑回归的梯度下降法
   private val gradient = new LogisticGradient()
+  // 逻辑回归的梯度更细方法,L2正则化
   private val updater = new SquaredL2Updater()
+  // 根据梯度下降法,梯度更新方法,新建梯度优化计算方法
   @Since("0.8.0")
   override val optimizer = new GradientDescent(gradient, updater)
     .setStepSize(stepSize)
@@ -240,6 +245,8 @@ class LogisticRegressionWithSGD private[mllib] (
 }
 
 /**
+  * 采用随机梯度下降的逻辑回归半生对象
+  * 注意: 标签必须是{0,1}
  * Top-level methods for calling Logistic Regression using Stochastic Gradient Descent.
  *
  * @note Labels used in Logistic Regression should be {0, 1}

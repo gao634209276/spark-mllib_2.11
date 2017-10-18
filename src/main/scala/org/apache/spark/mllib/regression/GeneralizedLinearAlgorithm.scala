@@ -261,6 +261,9 @@ abstract class GeneralizedLinearAlgorithm[M <: GeneralizedLinearModel]
     }
 
     /**
+      * 数据降维:
+      * 在优化过程中,收敛率取决于训练数据的维数
+      * 通过降维,从而改善收敛速度
      * Scaling columns to unit variance as a heuristic to reduce the condition number:
      *
      * During the optimization process, the convergence (rate) depends on the condition number of
